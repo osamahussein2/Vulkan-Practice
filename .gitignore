@@ -1,5 +1,26 @@
 # Prerequisites
 *.d
+*.tlog
+*.db
+*.vsidx
+*.suo
+*.json
+*.opendb
+*FileListAbsolute.txt
+*.exe.recipe
+*vc143.pdb
+*.log
+*.db-shm
+*.db-wal
+*.ilk
+*.idb
+*.iobj
+*.ipdb
+*.ipch
+*.pdb
+*.vcxproj.filters
+*.vcxproj.user
+*.bin
 
 # Compiled Object files
 *.slo
@@ -14,7 +35,6 @@
 # Compiled Dynamic libraries
 *.so
 *.dylib
-*.dll
 
 # Fortran module files
 *.mod
@@ -24,9 +44,3 @@
 *.lai
 *.la
 *.a
-*.lib
-
-# Executables
-*.exe
-*.out
-*.app
