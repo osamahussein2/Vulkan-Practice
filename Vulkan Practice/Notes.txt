@@ -21,3 +21,41 @@ To retrieve a list of supported extensions before creating an instance, there's 
 function. It takes a pointer to a variable that stores the number of extensions and an array of VkExtensionProperties to
 store details of the extensions. It also takes an optional first parameter that allows us to filter extensions by a specific
 validation layer.
+
+Validation layers are optional components that hook into Vulkan function calls to apply additional operations.
+
+You can simply enable validation layers for debug builds and completely disable them for release builds, which gives you the
+best of both worlds.
+
+To set up a callback in the program to handle messages and the associated details, we have to set up a debug messenger with
+a callback using the VK_EXT_debug_utils extension.
+
+debugCallback function's first parameter specifies the severity of the message:
+
+- VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT: Diagnostic message
+
+- VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT: Informational message like the creation of a resource
+
+- VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT: Message about behavior that is not necessarily an error, but very likely a
+bug in your application
+
+- VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT: Message about behavior that is invalid and may cause crashes
+
+The messageType parameter of debugCallback function can have the following values:
+
+- VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT: Some event has happened that is unrelated to the specification or performance
+
+- VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT: Something has happened that violates the specification or indicates a
+possible mistake
+
+- VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT: Potential non-optimal use of Vulkan
+
+The pCallbackData parameter refers to a VkDebugUtilsMessengerCallbackDataEXT struct containing the details of the message
+itself, with the most important members being:
+
+pMessage: The debug message as a null-terminated string
+pObjects: Array of Vulkan object handles related to the message
+objectCount: Number of objects in array
+
+The pUserData parameter contains a pointer that was specified during the setup of the callback and allows you to pass your
+own data to it.
