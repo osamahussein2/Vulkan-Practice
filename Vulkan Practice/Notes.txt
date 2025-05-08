@@ -1,0 +1,23 @@
+If any kind of fatal error occurs during execution then we'll throw a std::runtime_error exception with a descriptive message,
+which will propagate back to the main function and be printed to the command prompt. To handle a variety of standard exception
+types as well, we catch the more general std::exception.
+
+Just like each chunk of memory allocated with malloc requires a call to free, every Vulkan object that we create needs to be
+explicitly destroyed when we no longer need it. In C++ it is possible to perform automatic resource management using RAII or
+smart pointers provided in the <memory> header.
+
+Vulkan objects are either created directly with functions like vkCreateXXX, or allocated through another object with functions
+like vkAllocateXXX. After making sure that an object is no longer used anywhere, you need to destroy it with the counterparts
+vkDestroyXXX and vkFreeXXX.
+
+The very first thing you need to do is initialize the Vulkan library by creating an instance. The instance is the connection
+between your application and the Vulkan library and creating it involves specifying some details about your application to
+the driver.
+
+If you look at the vkCreateInstance documentation then you'll see that one of the possible error codes is 
+VK_ERROR_EXTENSION_NOT_PRESENT.
+
+To retrieve a list of supported extensions before creating an instance, there's the vkEnumerateInstanceExtensionProperties
+function. It takes a pointer to a variable that stores the number of extensions and an array of VkExtensionProperties to
+store details of the extensions. It also takes an optional first parameter that allows us to filter extensions by a specific
+validation layer.
