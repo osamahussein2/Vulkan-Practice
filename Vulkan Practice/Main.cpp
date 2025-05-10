@@ -1,6 +1,11 @@
+#define VK_USE_PLATFORM_WIN32_KHR
+
 // GLFW will include its own definitions and automatically load the Vulkan header with it
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
+
+#define GLFW_EXPOSE_NATIVE_WIN32
+#include <GLFW/glfw3native.h>
 
 /* The stdexcept and iostream headers are included for reporting and propagating errors. The cstdlib header provides the
 EXIT_SUCCESS and EXIT_FAILURE macros */
@@ -11,6 +16,7 @@ EXIT_SUCCESS and EXIT_FAILURE macros */
 #include <vector>
 #include <cstring>
 #include <map>
+#include <set>
 
 /* std::optional is a wrapper that contains no value until you assign something to it. At any point you can query if it
 contains a value or not by calling its has_value() member function */
@@ -50,9 +56,10 @@ void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT
 struct QueueFamilyIndices
 {
     std::optional<uint32_t> graphicsFamily;
+    std::optional<uint32_t> presentFamily;
 
     bool isComplete() {
-        return graphicsFamily.has_value();
+        return graphicsFamily.has_value() && presentFamily.has_value();
     }
 };
 
@@ -75,6 +82,8 @@ private:
     VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
     VkDevice device;
     VkQueue graphicsQueue;
+    VkSurfaceKHR surface;
+    VkQueue presentQueue;
 
     void createInstance()
     {
@@ -235,8 +244,17 @@ private:
 
         int i = 0;
         for (const auto& queueFamily : queueFamilies) {
-            if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+            if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) 
+            {
                 indices.graphicsFamily = i;
+            }
+
+            VkBool32 presentSupport = false;
+            vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
+
+            // Check the value of the boolean and store the presentation family queue index
+            if (presentSupport) {
+                indices.presentFamily = i;
             }
 
             if (indices.isComplete()) {
@@ -269,8 +287,17 @@ private:
     {
         createInstance();
         setupDebugMessenger();
+        createSurface();
         pickPhysicalDevice();
         createLogicalDevice();
+    }
+
+    void createSurface() 
+    {
+        if (glfwCreateWindowSurface(instance, window, nullptr, &surface) != VK_SUCCESS) 
+        {
+            throw std::runtime_error("failed to create window surface!");
+        }
     }
 
     void createLogicalDevice() 
@@ -279,23 +306,29 @@ private:
         will be VkDeviceQueueCreateInfo. This structure describes the number of queues we want for a single queue family */
         QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
 
-        VkDeviceQueueCreateInfo queueCreateInfo{};
-        queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-        queueCreateInfo.queueFamilyIndex = indices.graphicsFamily.value();
-        queueCreateInfo.queueCount = 1;
+        std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
+        std::set<uint32_t> uniqueQueueFamilies = { indices.graphicsFamily.value(), indices.presentFamily.value() };
 
         /* Vulkan lets you assign priorities to queues to influence the scheduling of command buffer execution using floating
         point numbers between 0.0 and 1.0. This is required even if there is only a single queue */
         float queuePriority = 1.0f;
-        queueCreateInfo.pQueuePriorities = &queuePriority;
+
+        for (uint32_t queueFamily : uniqueQueueFamilies) {
+            VkDeviceQueueCreateInfo queueCreateInfo{};
+            queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+            queueCreateInfo.queueFamilyIndex = queueFamily;
+            queueCreateInfo.queueCount = 1;
+            queueCreateInfo.pQueuePriorities = &queuePriority;
+            queueCreateInfos.push_back(queueCreateInfo);
+        }
 
         VkPhysicalDeviceFeatures deviceFeatures{};
 
         VkDeviceCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 
-        createInfo.pQueueCreateInfos = &queueCreateInfo;
-        createInfo.queueCreateInfoCount = 1;
+        createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
+        createInfo.pQueueCreateInfos = queueCreateInfos.data();
 
         createInfo.pEnabledFeatures = &deviceFeatures;
         createInfo.enabledExtensionCount = 0;
@@ -316,6 +349,7 @@ private:
         device, queue family, queue index and a pointer to the variable to store the queue handle in. Because we're only
         creating a single queue from this family, we'll simply use index 0 */
         vkGetDeviceQueue(device, indices.graphicsFamily.value(), 0, &graphicsQueue);
+        vkGetDeviceQueue(device, indices.presentFamily.value(), 0, &presentQueue);
     }
 
     void pickPhysicalDevice() 
@@ -424,6 +458,8 @@ private:
         if (enableValidationLayers) {
             DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
         }
+
+        vkDestroySurfaceKHR(instance, surface, nullptr);
 
         // The VkInstance should be only destroyed right before the program exits by calling vkDestroyInstance
 
