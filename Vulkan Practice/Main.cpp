@@ -26,6 +26,8 @@ contains a value or not by calling its has_value() member function */
 #include <limits> // Necessary for std::numeric_limits
 #include <algorithm> // Necessary for std::clamp
 
+#include <fstream>
+
 const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
 
@@ -36,6 +38,34 @@ const std::vector<const char*> validationLayers = {
 const std::vector<const char*> deviceExtensions = {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME
 };
+
+static std::vector<char> readFile(const std::string& filename) 
+{
+    /* The readFile function will read all of the bytes from the specified file and return them in a byte array managed by 
+    std::vector. We start by opening the file with two flags:
+    
+    1. ate: Start reading at the end of the file
+    2. binary: Read the file as binary file (avoid text transformations) */
+    std::ifstream file(filename, std::ios::ate | std::ios::binary);
+
+    if (!file.is_open()) {
+        throw std::runtime_error("failed to open file!");
+    }
+
+    /* The advantage of starting to read at the end of the file is that we can use the read position to determine the size of
+    the file and allocate a buffer */
+    size_t fileSize = (size_t)file.tellg();
+    std::vector<char> buffer(fileSize);
+
+    // After that, we can seek back to the beginning of the file and read all of the bytes at once
+    file.seekg(0);
+    file.read(buffer.data(), fileSize);
+
+    // And finally close the file and return the bytes
+    file.close();
+
+    return buffer;
+}
 
 // The NDEBUG macro is part of the C++ standard and means "not debug"
 #ifdef NDEBUG
@@ -394,6 +424,22 @@ private:
         }
     }
 
+    VkShaderModule createShaderModule(const std::vector<char>& code) 
+    {
+        VkShaderModuleCreateInfo createInfo{};
+        createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+        createInfo.codeSize = code.size();
+        createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
+
+        VkShaderModule shaderModule;
+        if (vkCreateShaderModule(device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS) 
+        {
+            throw std::runtime_error("failed to create shader module!");
+        }
+
+        return shaderModule;
+    }
+
     void initWindow() 
     {
         glfwInit(); //  Initialize the GLFW library
@@ -418,6 +464,48 @@ private:
         createLogicalDevice();
         createSwapChain();
         createImageViews();
+        createGraphicsPipeline();
+    }
+
+    void createGraphicsPipeline() 
+    {
+        // Load the bytecode of the two shaders
+        auto vertShaderCode = readFile("shaders/vert.spv");
+        auto fragShaderCode = readFile("shaders/frag.spv");
+
+        /* Shader modules are just a thin wrapper around the shader bytecode that we've previously loaded from a file and the
+        functions defined in it. The compilation and linking of the SPIR-V bytecode to machine code for execution by the GPU
+        doesn't happen until the graphics pipeline is created. That means that we're allowed to destroy the shader modules
+        again as soon as pipeline creation is finished, which is why we'll make them local variables in the
+        createGraphicsPipeline function instead of class members */
+        VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
+        VkShaderModule fragShaderModule = createShaderModule(fragShaderCode);
+
+        VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
+
+        /* The first step, besides the obligatory sType member, is telling Vulkan in which pipeline stage the shader is 
+        going to be used */
+        vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
+
+        /* The next two members specify the shader module containing the code, and the function to invoke, known as the
+        entrypoint. That means that it's possible to combine multiple fragment shaders into a single shader module and use
+        different entry points to differentiate between their behaviors. In this case we'll stick to the standard main,
+        however */
+        vertShaderStageInfo.module = vertShaderModule;
+        vertShaderStageInfo.pName = "main";
+
+        VkPipelineShaderStageCreateInfo fragShaderStageInfo{};
+        fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+        fragShaderStageInfo.module = fragShaderModule;
+        fragShaderStageInfo.pName = "main";
+
+        // Define an array that containing the vertex and fragment shader stage structs
+        VkPipelineShaderStageCreateInfo shaderStages[] = { vertShaderStageInfo, fragShaderStageInfo };
+
+        vkDestroyShaderModule(device, fragShaderModule, nullptr);
+        vkDestroyShaderModule(device, vertShaderModule, nullptr);
     }
 
     void createImageViews() 

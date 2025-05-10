@@ -1,3 +1,7 @@
+I'm trying to learn Vulkan through this tutorial (APA reference):
+
+Overvoorde, A. (2023). Vulkan Tutorial. https://vulkan-tutorial.com/.
+
 If any kind of fatal error occurs during execution then we'll throw a std::runtime_error exception with a descriptive message,
 which will propagate back to the main function and be printed to the command prompt. To handle a variety of standard exception
 types as well, we catch the more general std::exception.
@@ -99,3 +103,39 @@ before matching it against the minimum and maximum image extent.
 To use any VkImage, including those in the swap chain, in the render pipeline we have to create a VkImageView object. An
 image view is quite literally a view into an image. It describes how to access the image and which part of the image to
 access, for example if it should be treated as a 2D texture depth texture without any mipmapping levels.
+
+The input assembler collects the raw vertex data from the buffers you specify and may also use an index buffer to repeat
+certain elements without having to duplicate the vertex data itself.
+
+The vertex shader is run for every vertex and generally applies transformations to turn vertex positions from model space
+to screen space. It also passes per-vertex data down the pipeline.
+
+The tessellation shaders allow you to subdivide geometry based on certain rules to increase the mesh quality. This is often
+used to make surfaces like brick walls and staircases look less flat when they are nearby.
+
+The geometry shader is run on every primitive (triangle, line, point) and can discard it or output more primitives than came
+in. This is similar to the tessellation shader, but much more flexible. However, it is not used much in today's applications
+because the performance is not that good on most graphics cards except for Intel's integrated GPUs.
+
+The rasterization stage discretizes the primitives into fragments. These are the pixel elements that they fill on the
+framebuffer. Any fragments that fall outside the screen are discarded and the attributes outputted by the vertex shader
+are interpolated across the fragments. Usually the fragments that are behind other primitive fragments are also discarded
+here because of depth testing.
+
+The fragment shader is invoked for every fragment that survives and determines which framebuffer(s) the fragments are written
+to and with which color and depth values. It can do this using the interpolated data from the vertex shader, which can include
+things like texture coordinates and normals for lighting.
+
+The color blending stage applies operations to mix different fragments that map to the same pixel in the framebuffer.
+Fragments can simply overwrite each other, add up or be mixed based upon transparency.
+
+A clip coordinate is a four dimensional vector from the vertex shader that is subsequently turned into a normalized device
+coordinate by dividing the whole vector by its last component. These normalized device coordinates are homogeneous coordinates
+that map the framebuffer to a [-1, 1] by [-1, 1] coordinate system.
+
+There is one more (optional) member, pSpecializationInfo, which we won't be using here, but is worth discussing. It allows
+you to specify values for shader constants. You can use a single shader module where its behavior can be configured at
+pipeline creation by specifying different values for the constants used in it. This is more efficient than configuring the
+shader using variables at render time, because the compiler can do optimizations like eliminating if statements that depend
+on these values. If you don't have any constants like that, then you can set the member to nullptr, which our struct
+initialization does automatically.
