@@ -149,3 +149,7 @@ like a filter rather than a transformation.
 
 If you are using a depth and/or stencil buffer, then you also need to configure the depth and stencil tests using
 VkPipelineDepthStencilStateCreateInfo.
+
+A single render pass can consist of multiple subpasses. Subpasses are subsequent rendering operations that depend on the
+contents of framebuffers in previous passes, for example a sequence of post-processing effects that are applied one after
+another.
