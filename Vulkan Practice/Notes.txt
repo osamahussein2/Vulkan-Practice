@@ -95,3 +95,7 @@ screen coordinates don't correspond to pixels. Instead, due to the higher pixel 
 will be larger than the resolution in screen coordinates. So if Vulkan doesn't fix the swap extent for us, we can't just use
 the original WIDTH, HEIGHT. Instead, we must use glfwGetFramebufferSize to query the resolution of the window in pixel
 before matching it against the minimum and maximum image extent.
+
+To use any VkImage, including those in the swap chain, in the render pipeline we have to create a VkImageView object. An
+image view is quite literally a view into an image. It describes how to access the image and which part of the image to
+access, for example if it should be treated as a 2D texture depth texture without any mipmapping levels.
