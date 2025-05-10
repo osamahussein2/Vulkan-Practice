@@ -139,3 +139,13 @@ pipeline creation by specifying different values for the constants used in it. T
 shader using variables at render time, because the compiler can do optimizations like eliminating if statements that depend
 on these values. If you don't have any constants like that, then you can set the member to nullptr, which our struct
 initialization does automatically.
+
+A viewport basically describes the region of the framebuffer that the output will be rendered to. This will almost always
+be (0, 0) to (width, height).
+
+While viewports define the transformation from the image to the framebuffer, scissor rectangles define in which regions
+pixels will actually be stored. Any pixels outside the scissor rectangles will be discarded by the rasterizer. They function
+like a filter rather than a transformation.
+
+If you are using a depth and/or stencil buffer, then you also need to configure the depth and stencil tests using
+VkPipelineDepthStencilStateCreateInfo.
