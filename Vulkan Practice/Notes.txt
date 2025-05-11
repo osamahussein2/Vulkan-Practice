@@ -156,3 +156,22 @@ another.
 
 We have to create a command pool before we can create command buffers. Command pools manage the memory that is used to store
 the buffers and command buffers are allocated from them.
+
+A semaphore is used to add order between queue operations. Queue operations refer to the work we submit to a queue, either in
+a command buffer or from within a function. Examples of queues are the graphics queue and the presentation queue. Semaphores
+are used both to order work inside the same queue and between different queues.
+
+A fence has a similar purpose, in that it is used to synchronize execution, but it is for ordering the execution on the CPU,
+otherwise known as the host. Simply put, if the host needs to know when the GPU has finished something, we use a fence.
+
+Similar to semaphores, fences are either in a signaled or unsignaled state. Whenever we submit work to execute, we can attach
+a fence to that work. When the work is finished, the fence will be signaled. Then we can make the host wait for the fence to
+be signaled, guaranteeing that the work has finished before the host continues.
+
+In general, it is preferable to not block the host unless necessary. We want to feed the GPU and the host with useful work to
+do. Waiting on fences to signal is not useful work. Thus we prefer semaphores, or other synchronization primitives not yet
+covered, to synchronize our work.
+
+Fences must be reset manually to put them back into the unsignaled state. This is because fences are used to control the
+execution of the host, and so the host gets to decide when to reset the fence. Contrast this to semaphores which are used to
+order work on the GPU without the host being involved.
