@@ -153,3 +153,6 @@ VkPipelineDepthStencilStateCreateInfo.
 A single render pass can consist of multiple subpasses. Subpasses are subsequent rendering operations that depend on the
 contents of framebuffers in previous passes, for example a sequence of post-processing effects that are applied one after
 another.
+
+We have to create a command pool before we can create command buffers. Command pools manage the memory that is used to store
+the buffers and command buffers are allocated from them.
