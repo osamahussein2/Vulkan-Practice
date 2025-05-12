@@ -182,3 +182,12 @@ between data entries and whether to move to the next data entry after each verte
 The binding parameter tells Vulkan from which binding the per-vertex data comes. The location parameter references the
 location directive of the input in the vertex shader. The input in the vertex shader with location 0 is the position,
 which has two 32-bit float components.
+
+Buffers in Vulkan are regions of memory used for storing arbitrary data that can be read by the graphics card. They can be
+used to store vertex data, but they can also be used for many other purposes too. Unlike most Vulkan objects, buffers do
+not automatically allocate memory for themselves.
+
+The flags parameter for VkBufferCreateInfo structure is used to configure sparse buffer memory.
+
+The VkPhysicalDeviceMemoryProperties structure has two arrays memoryTypes and memoryHeaps. Memory heaps are distinct memory
+resources like dedicated VRAM and swap space in RAM for when VRAM runs out.

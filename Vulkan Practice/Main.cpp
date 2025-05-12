@@ -212,6 +212,9 @@ private:
 
     uint32_t currentFrame = 0;
 
+    VkBuffer vertexBuffer;
+    VkDeviceMemory vertexBufferMemory;
+
     void createInstance()
     {
         if (enableValidationLayers && !checkValidationLayerSupport()) {
@@ -555,18 +558,38 @@ private:
         scissor.extent = swapChainExtent;
         vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
+        VkBuffer vertexBuffers[] = { vertexBuffer };
+        VkDeviceSize offsets[] = { 0 };
+        vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+
         /* vkCmdDraw passes in a command buffer
         vertexCount: Even though we don't have a vertex buffer, we technically still have 3 vertices to draw
         instanceCount: Used for instanced rendering, use 1 if you're not doing that
         firstVertex: Used as an offset into the vertex buffer, defines the lowest value of gl_VertexIndex
         firstInstance: Used as an offset for instanced rendering, defines the lowest value of gl_InstanceIndex */
-        vkCmdDraw(commandBuffer, 3, 1, 0, 0);
+        vkCmdDraw(commandBuffer, static_cast<uint32_t>(vertices.size()), 1, 0, 0);
         vkCmdEndRenderPass(commandBuffer);
 
         if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) 
         {
             throw std::runtime_error("failed to record command buffer!");
         }
+    }
+
+    uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) 
+    {
+        VkPhysicalDeviceMemoryProperties memProperties;
+        vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProperties);
+
+        for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) 
+        {
+            // Check for memory type that is suitable for the buffer and property support
+            if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
+                return i;
+            }
+        }
+
+        throw std::runtime_error("failed to find suitable memory type!");
     }
 
     void initWindow() 
@@ -611,8 +634,54 @@ private:
         createGraphicsPipeline();
         createFramebuffers();
         createCommandPool();
+        createVertexBuffer();
         createCommandBuffers();
         createSyncObjects();
+    }
+
+    void createVertexBuffer() 
+    {
+        // Creating a buffer requires us to fill a VkBufferCreateInfo structure
+        VkBufferCreateInfo bufferInfo{};
+        bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+
+        /* The first field of the struct is size, which specifies the size of the buffer in bytes. Calculating the byte size
+        of the vertex data is straightforward with sizeof */
+        bufferInfo.size = sizeof(vertices[0]) * vertices.size();
+
+        // Indicates for which purposes the data in the buffer is going to be used
+        bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+        bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+        if (vkCreateBuffer(device, &bufferInfo, nullptr, &vertexBuffer) != VK_SUCCESS) 
+        {
+            throw std::runtime_error("failed to create vertex buffer!");
+        }
+
+        VkMemoryRequirements memRequirements;
+        vkGetBufferMemoryRequirements(device, vertexBuffer, &memRequirements);
+
+        VkMemoryAllocateInfo allocInfo{};
+        allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+        allocInfo.allocationSize = memRequirements.size;
+        allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+            VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+        if (vkAllocateMemory(device, &allocInfo, nullptr, &vertexBufferMemory) != VK_SUCCESS) 
+        {
+            throw std::runtime_error("failed to allocate vertex buffer memory!");
+        }
+
+        // If memory allocation was successful, then we can associate this memory with the buffer using vkBindBufferMemory
+        vkBindBufferMemory(device, vertexBuffer, vertexBufferMemory, 0);
+
+        // This function allows us to access a region of the specified memory resource defined by an offset and size
+        void* data;
+        vkMapMemory(device, vertexBufferMemory, 0, bufferInfo.size, 0, &data);
+
+        // memcpy the vertex data to the mapped memory and unmap it again using vkUnmapMemory
+        memcpy(data, vertices.data(), (size_t)bufferInfo.size);
+        vkUnmapMemory(device, vertexBufferMemory);
     }
 
     void createSyncObjects() 
@@ -1288,6 +1357,9 @@ private:
     void cleanup() 
     {
         cleanupSwapChain();
+
+        vkDestroyBuffer(device, vertexBuffer, nullptr);
+        vkFreeMemory(device, vertexBufferMemory, nullptr);
 
         vkDestroyPipeline(device, graphicsPipeline, nullptr);
         vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
