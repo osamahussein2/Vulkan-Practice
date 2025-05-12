@@ -28,6 +28,9 @@ contains a value or not by calling its has_value() member function */
 
 #include <fstream>
 
+#include <glm.hpp>
+#include <array>
+
 const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
 
@@ -108,6 +111,59 @@ struct SwapChainSupportDetails
     VkSurfaceCapabilitiesKHR capabilities;
     std::vector<VkSurfaceFormatKHR> formats;
     std::vector<VkPresentModeKHR> presentModes;
+};
+
+struct Vertex 
+{
+    glm::vec2 pos;
+    glm::vec3 color;
+
+    /* Tell Vulkan how to pass this data format to the vertex shader once it's been uploaded into GPU memory. There are two
+    types of structures needed to convey this information. The first structure is VkVertexInputBindingDescription. */
+    static VkVertexInputBindingDescription getBindingDescription() 
+    {
+        VkVertexInputBindingDescription bindingDescription{};
+
+        /*  The binding parameter specifies the index of the binding in the array of bindings. The stride parameter specifies
+        the number of bytes from one entry to the next, and the inputRate parameter can have one of the following values:
+
+        1. VK_VERTEX_INPUT_RATE_VERTEX: Move to the next data entry after each vertex (we'll stick to per-vertex data)
+        2. VK_VERTEX_INPUT_RATE_INSTANCE: Move to the next data entry after each instance (no instance is needed) */
+        bindingDescription.binding = 0;
+        bindingDescription.stride = sizeof(Vertex);
+        bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+        return bindingDescription;
+    }
+
+    static std::array<VkVertexInputAttributeDescription, 2> getAttributeDescriptions() 
+    {
+        // The second structure that describes how to handle vertex input is VkVertexInputAttributeDescription
+        std::array<VkVertexInputAttributeDescription, 2> attributeDescriptions{};
+
+        /* An attribute description struct describes how to extract a vertex attribute from a chunk of vertex data
+        originating from a binding description. We have two attributes, position and color, so we need two attribute
+        description structs */
+        attributeDescriptions[0].binding = 0;
+        attributeDescriptions[0].location = 0;
+        attributeDescriptions[0].format = VK_FORMAT_R32G32_SFLOAT;
+        attributeDescriptions[0].offset = offsetof(Vertex, pos);
+
+        attributeDescriptions[1].binding = 0;
+        attributeDescriptions[1].location = 1;
+        attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+        attributeDescriptions[1].offset = offsetof(Vertex, color);
+
+        return attributeDescriptions;
+    }
+};
+
+const std::vector<Vertex> vertices = 
+{
+    // The position and color values are combined into one array of vertices, known as interleaving vertex attributes
+    {{0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+    {{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
+    {{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}
 };
 
 class HelloTriangleApplication 
@@ -732,10 +788,15 @@ private:
         // Define an array that containing the vertex and fragment shader stage structs
         VkPipelineShaderStageCreateInfo shaderStages[] = { vertShaderStageInfo, fragShaderStageInfo };
 
+        auto bindingDescription = Vertex::getBindingDescription();
+        auto attributeDescriptions = Vertex::getAttributeDescriptions();
+
         VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
         vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-        vertexInputInfo.vertexBindingDescriptionCount = 0;
-        vertexInputInfo.vertexAttributeDescriptionCount = 0;
+        vertexInputInfo.vertexBindingDescriptionCount = 1;
+        vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
+        vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
+        vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
 
         VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
         inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;

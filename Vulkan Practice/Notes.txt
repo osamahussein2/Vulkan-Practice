@@ -175,3 +175,10 @@ covered, to synchronize our work.
 Fences must be reset manually to put them back into the unsignaled state. This is because fences are used to control the
 execution of the host, and so the host gets to decide when to reset the fence. Contrast this to semaphores which are used to
 order work on the GPU without the host being involved.
+
+A vertex binding describes at which rate to load data from memory throughout the vertices. It specifies the number of bytes
+between data entries and whether to move to the next data entry after each vertex or after each instance.
+
+The binding parameter tells Vulkan from which binding the per-vertex data comes. The location parameter references the
+location directive of the input in the vertex shader. The input in the vertex shader with location 0 is the position,
+which has two 32-bit float components.
