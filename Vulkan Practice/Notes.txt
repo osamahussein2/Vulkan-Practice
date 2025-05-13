@@ -217,3 +217,13 @@ and prevents any geometry from being drawn.
 
 Pipeline barriers are primarily used for synchronizing access to resources, like making sure that an image was written to
 before it is read, but they can also be used to transition layouts.
+
+Undersampling is the opposite problem, where you have more texels than fragments. This will lead to artifacts when sampling
+high frequency patterns like a checkerboard texture at a sharp angle.
+
+1. VK_SAMPLER_ADDRESS_MODE_REPEAT: Repeat the texture when going beyond the image dimensions.
+2. VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT: Like repeat, but inverts the coordinates to mirror the image when going beyond
+the dimensions.
+3. VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE: Take the color of the edge closest to the coordinate beyond the image dimensions.
+4. VK_SAMPLER_ADDRESS_MODE_MIRROR_CLAMP_TO_EDGE: Like clamp to edge, but instead uses the edge opposite to the closest edge.
+5. VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER: Return a solid color when sampling beyond the dimensions of the image.
