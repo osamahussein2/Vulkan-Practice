@@ -4,8 +4,11 @@
 by the location directives */
 
 layout(location = 0) in vec3 fragColor;
+layout(location = 1) in vec2 fragTexCoord;
 
 layout(location = 0) out vec4 outColor;
+
+layout(binding = 1) uniform sampler2D texSampler;
 
 void main() 
 {
@@ -14,5 +17,13 @@ void main()
     the vertex shader, there is no built-in variable to output a color for the current fragment. You have to specify your own
     output variable for each framebuffer where the layout(location = 0) modifier specifies the index of the framebuffer. */
 
-    outColor = vec4(fragColor, 1.0);
+    //outColor = vec4(fragColor, 1.0);
+
+    // The fragTexCoord values will be smoothly interpolated across the area of the square by the rasterizer
+    //outColor = vec4(fragTexCoord, 0.0, 1.0);
+
+    outColor = texture(texSampler, fragTexCoord);
+
+    // Manipulate the texture colors using vertex colors
+    //outColor = vec4(fragColor * texture(texSampler, fragTexCoord).rgb, 1.0);
 }

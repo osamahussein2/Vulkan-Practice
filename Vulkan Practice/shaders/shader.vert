@@ -2,6 +2,7 @@
 
 // Pass these per-vertex colors to the fragment shader so it can output their interpolated values to the framebuffer
 layout(location = 0) out vec3 fragColor;
+layout(location = 1) out vec2 fragTexCoord;
 
 /* Just like fragColor, the layout(location = x) annotations assign indices to the inputs that we can later use to reference
 them. It is important to know that some types, like dvec3 64 bit vectors, use multiple slots. That means that the index after
@@ -9,6 +10,7 @@ it must be at least 2 higher (e.g. layout(location = 0) in dvec3 inPosition; lay
 
 layout(location = 0) in vec2 inPosition;
 layout(location = 1) in vec3 inColor;
+layout(location = 2) in vec2 inTexCoord;
 
 layout(binding = 0) uniform UniformBufferObject 
 {
@@ -41,4 +43,5 @@ void main()
 
     gl_Position = ubo.proj * ubo.view * ubo.model * vec4(inPosition, 0.0, 1.0);
     fragColor = inColor;
+    fragTexCoord = inTexCoord; // Sample colors from the texture
 }
