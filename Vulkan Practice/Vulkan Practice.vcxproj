@@ -71,11 +71,11 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>C:\GameDev\stb-master;C:\GameDev\glm;C:\GameDev\GLFW 3.4 bin WIN64\include;C:\GameDev\Vulkan\Include;$(IncludePath)</IncludePath>
+    <IncludePath>C:\GameDev\tinyobjloader;C:\GameDev\stb-master;C:\GameDev\glm;C:\GameDev\GLFW 3.4 bin WIN64\include;C:\GameDev\Vulkan\Include;$(IncludePath)</IncludePath>
     <LibraryPath>C:\GameDev\GLFW 3.4 bin WIN64\lib-vc2022;C:\GameDev\Vulkan\Lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>C:\GameDev\stb-master;C:\GameDev\glm;C:\GameDev\GLFW 3.4 bin WIN64\include;C:\GameDev\Vulkan\Include;$(IncludePath)</IncludePath>
+    <IncludePath>C:\GameDev\tinyobjloader;C:\GameDev\stb-master;C:\GameDev\glm;C:\GameDev\GLFW 3.4 bin WIN64\include;C:\GameDev\Vulkan\Include;$(IncludePath)</IncludePath>
     <LibraryPath>C:\GameDev\GLFW 3.4 bin WIN64\lib-vc2022;C:\GameDev\Vulkan\Lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">

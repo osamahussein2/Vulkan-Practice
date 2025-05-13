@@ -250,3 +250,7 @@ are several formats that fit this requirement:
 3. VK_FORMAT_D24_UNORM_S8_UINT: 24-bit float for depth and 8 bit stencil component
 
 The stencil component is used for stencil tests, which is an additional test that can be combined with depth testing.
+
+An OBJ file consists of positions, normals, texture coordinates and faces. Faces consist of an arbitrary amount of vertices,
+where each vertex refers to a position, normal and/or texture coordinate by index. This makes it possible to not just reuse
+entire vertices, but also individual attributes.

@@ -41,13 +41,25 @@ glm::rotate, view transformations like glm::lookAt and projection transformation
 // The chrono standard library header exposes functions to do precise timekeeping
 #include <chrono>
 
+#include <unordered_map>
+
 /* The header only defines the prototypes of the functions by default. One code file needs to include the header with the
 STB_IMAGE_IMPLEMENTATION definition to include the function bodies, otherwise we'll get linking errors */
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
+// Define TINYOBJLOADER_IMPLEMENTATION in one source file to include the function bodies and avoid linker errors
+#define TINYOBJLOADER_IMPLEMENTATION
+#include <tiny_obj_loader.h>
+
+#define GLM_ENABLE_EXPERIMENTAL
+#include <gtx/hash.hpp>
+
 const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
+
+const std::string MODEL_PATH = "models/viking_room.obj";
+const std::string TEXTURE_PATH = "textures/viking_room.png";
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
 
@@ -179,9 +191,29 @@ struct Vertex
 
         return attributeDescriptions;
     }
+
+    /* The program will fail to compile right now, because using a user-defined type like our Vertex struct as key in a hash
+    table requires us to implement two functions: equality test and hash calculation. The former is easy to implement by
+    overriding the == operator in the Vertex struct */
+    bool operator==(const Vertex& other) const 
+    {
+        return pos == other.pos && color == other.color && texCoord == other.texCoord;
+    }
 };
 
-const std::vector<Vertex> vertices = 
+/* A hash function for Vertex is implemented by specifying a template specialization for std::hash<T>. Hash functions can
+combine the fields of a struct to create a decent quality hash function */
+namespace std {
+    template<> struct hash<Vertex> {
+        size_t operator()(Vertex const& vertex) const {
+            return ((hash<glm::vec3>()(vertex.pos) ^
+                (hash<glm::vec3>()(vertex.color) << 1)) >> 1) ^
+                (hash<glm::vec2>()(vertex.texCoord) << 1);
+        }
+    };
+}
+
+/*const std::vector<Vertex> vertices =
 {
     // The position and color values are combined into one array of vertices, known as interleaving vertex attributes
 
@@ -201,7 +233,7 @@ const std::vector<uint16_t> indices =
 {
     0, 1, 2, 2, 3, 0,
     4, 5, 6, 6, 7, 4
-};
+};*/
 
 struct UniformBufferObject 
 {
@@ -281,6 +313,9 @@ private:
     VkImage depthImage;
     VkDeviceMemory depthImageMemory;
     VkImageView depthImageView;
+
+    std::vector<Vertex> vertices;
+    std::vector<uint32_t> indices;
 
     void createInstance()
     {
@@ -642,7 +677,7 @@ private:
         vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
 
         // Bind index buffer (can only have a single index buffer)
-        vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT16);
+        vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
         /* vkCmdDraw passes in a command buffer
         vertexCount: Even though we don't have a vertex buffer, we technically still have 3 vertices to draw
@@ -672,7 +707,6 @@ private:
 
         for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) 
         {
-            // Check for memory type that is suitable for the buffer and property support
             if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
                 return i;
             }
@@ -728,6 +762,7 @@ private:
         createTextureImage();
         createTextureImageView();
         createTextureSampler();
+        loadModel();
         createVertexBuffer();
         createIndexBuffer();
         createUniformBuffers();
@@ -735,6 +770,79 @@ private:
         createDescriptorSets();
         createCommandBuffers();
         createSyncObjects();
+    }
+
+    void loadModel() 
+    {
+        // A model is loaded into the library's data structures by calling the tinyobj::LoadObj function
+
+        /* The attrib container holds all of the positions, normals and texture coordinates in its attrib.vertices,
+        attrib.normals and attrib.texcoords vectors */
+        tinyobj::attrib_t attrib;
+
+        /* The shapes container contains all of the separate objects and their faces. Each face consists of an array of
+        vertices, and each vertex contains the indices of the position, normal and texture coordinate attributes */
+        std::vector<tinyobj::shape_t> shapes;
+        std::vector<tinyobj::material_t> materials;
+
+        /* The err string contains errors and the warn string contains warnings that occurred while loading the file, like
+        a missing material definition */
+        std::string warn, err;
+
+        if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, MODEL_PATH.c_str()))
+        {
+            throw std::runtime_error(warn + err);
+        }
+
+        std::unordered_map<Vertex, uint32_t> uniqueVertices{};
+
+        // Iterate over all the shapes to combine all the faces in the file into a single model
+        for (const auto& shape : shapes) 
+        {
+            /* The triangulation feature has already made sure that there are three vertices per face, so we can now directly
+            iterate over the vertices and dump them straight into our vertices vector */
+            for (const auto& index : shape.mesh.indices) 
+            {
+                Vertex vertex{};
+
+                //vertices.push_back(vertex);
+                //indices.push_back(indices.size());
+
+                /* Unfortunately the attrib.vertices array is an array of float values instead of something like glm::vec3,
+                so you need to multiply the index by 3. Similarly, there are two texture coordinate components per entry.
+                The offsets of 0, 1 and 2 are used to access the X, Y and Z components, or the U and V components in the
+                case of texture coordinates */
+                vertex.pos = {
+                    attrib.vertices[3 * index.vertex_index + 0],
+                    attrib.vertices[3 * index.vertex_index + 1],
+                    attrib.vertices[3 * index.vertex_index + 2]
+                };
+
+                vertex.texCoord = {
+                    attrib.texcoords[2 * index.texcoord_index + 0],
+
+                    /* The OBJ format assumes a coordinate system where a vertical coordinate of 0 means the bottom of the
+                    image, however we've uploaded our image into Vulkan in a top to bottom orientation where 0 means the top
+                    of the image. Solve this by flipping the vertical component of the texture coordinates */
+                    1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
+                };
+
+                vertex.color = { 1.0f, 1.0f, 1.0f };
+
+                /* Every time we read a vertex from the OBJ file, we check if we've already seen a vertex with the exact same
+                position and texture coordinates before. If not, we add it to vertices and store its index in the
+                uniqueVertices container */
+                if (uniqueVertices.count(vertex) == 0) 
+                {
+                    uniqueVertices[vertex] = static_cast<uint32_t>(vertices.size());
+                    vertices.push_back(vertex);
+                }
+
+                /* After that we add the index of the new vertex to indices. If we've seen the exact same vertex before,
+                then we look up its index in uniqueVertices and store that index in indices */
+                indices.push_back(uniqueVertices[vertex]);
+            }
+        }
     }
 
     void createDepthResources() 
@@ -882,7 +990,7 @@ private:
     void createTextureImage() 
     {
         int texWidth, texHeight, texChannels;
-        stbi_uc* pixels = stbi_load("textures/texture.jpg", &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+        stbi_uc* pixels = stbi_load(TEXTURE_PATH.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
 
         VkDeviceSize imageSize = texWidth * texHeight * 4;
 
