@@ -214,3 +214,6 @@ destroyed. The call to vkAllocateDescriptorSets will allocate descriptor sets, e
 The problem is that because of the Y-flip we did in the projection matrix causing nothing to be visible in the window, the
 vertices are now being drawn in counter-clockwise order instead of clockwise order. This causes backface culling to kick in
 and prevents any geometry from being drawn.
+
+Pipeline barriers are primarily used for synchronizing access to resources, like making sure that an image was written to
+before it is read, but they can also be used to transition layouts.
