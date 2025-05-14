@@ -261,3 +261,12 @@ from the smaller mip images. Using smaller images increases the rendering speed 
 
 In Vulkan, each of the mip images is stored in different mip levels of a VkImage. Mip level 0 is the original image, and
 the mip levels after level 0 are commonly referred to as the mip chain.
+
+In ordinary rendering, the pixel color is determined based on a single sample point which in most cases is the center of the
+target pixel on screen. If part of the drawn line passes through a certain pixel but doesn't cover the sample point, that
+pixel will be left blank, leading to the jagged "staircase" effect.
+
+What MSAA does is it uses multiple sample points per pixel (hence the name) to determine its final color. As one might
+expect, more samples lead to better results, however it is also more computationally expensive.
+
+In MSAA, each pixel is sampled in an offscreen buffer which is then rendered to the screen.
