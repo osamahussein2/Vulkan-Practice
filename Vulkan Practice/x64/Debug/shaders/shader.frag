@@ -4,11 +4,11 @@
 by the location directives */
 
 layout(location = 0) in vec3 fragColor;
-layout(location = 1) in vec2 fragTexCoord;
+//layout(location = 1) in vec2 fragTexCoord;
 
 layout(location = 0) out vec4 outColor;
 
-layout(binding = 1) uniform sampler2D texSampler;
+//layout(binding = 1) uniform sampler2D texSampler;
 
 void main() 
 {
@@ -22,8 +22,13 @@ void main()
     // The fragTexCoord values will be smoothly interpolated across the area of the square by the rasterizer
     //outColor = vec4(fragTexCoord, 0.0, 1.0);
 
-    outColor = texture(texSampler, fragTexCoord);
+    //outColor = texture(texSampler, fragTexCoord);
 
     // Manipulate the texture colors using vertex colors
     //outColor = vec4(fragColor * texture(texSampler, fragTexCoord).rgb, 1.0);
+
+    // Compute shader (for fragment shader)
+    vec2 coord = gl_PointCoord - vec2(0.5);
+    outColor = vec4(fragColor, 0.5 - length(coord));
+
 }

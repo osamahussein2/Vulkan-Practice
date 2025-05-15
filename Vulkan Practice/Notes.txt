@@ -270,3 +270,32 @@ What MSAA does is it uses multiple sample points per pixel (hence the name) to d
 expect, more samples lead to better results, however it is also more computationally expensive.
 
 In MSAA, each pixel is sampled in an offscreen buffer which is then rendered to the screen.
+
+A shader storage buffer (SSBO) allows shaders to read from and write to a buffer. Using these is similar to using uniform
+buffer objects. The biggest differences are that you can alias other buffer types to SSBOs and that they can be arbitrarily
+large.
+
+A storage image allows you read from and write to an image. Typical use cases are applying image effects to textures, doing
+post processing (which in turn is very similar) or generating mip-maps.
+
+Work groups define how the compute workloads are formed and processed by the the compute hardware of the GPU. Work group 
+dimensions are set by the application at command buffer time using a dispatch command.
+
+And each work group then is a collection of invocations that execute the same compute shader. Invocations can potentially
+run in parallel and their dimensions are set in the compute shader. Invocations within a single workgroup have access to
+shared memory.
+
+As compute is not a part of the graphics pipeline, we can't use vkCreateGraphicsPipelines. Instead we need to create a
+dedicated compute pipeline with vkCreateComputePipelines for running our compute commands. Since a compute pipeline does
+not touch any of the rasterization state, it has a lot less state than a graphics pipeline.
+
+The main function then reads from the last frame's SSBO and writes the updated particle position to the SSBO for the
+current frame. Similar to other shader types, compute shaders have their own set of builtin input variables. Built-ins
+are always prefixed with gl_. One such built-in is gl_GlobalInvocationID.
+
+ The compute fences, just like the graphics fences, are created in the signaled state because otherwise, the first draw
+ would time out while waiting for the fences to be signaled.
+
+ Wrong or lacking synchronization may result in the vertex stage starting to draw (=read) particles while the compute shader
+ hasn't finished updating (=write) them (read-after-write hazard), or the compute shader could start updating particles that
+ are still in use by the vertex part of the pipeline (write-after-read hazard).
